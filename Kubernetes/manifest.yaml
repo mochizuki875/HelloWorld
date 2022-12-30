@@ -18,7 +18,8 @@ spec:
     spec:
       containers:
       # - image: ghcr.io/mochizuki875/hello-app:v1.0
-      - image: ghcr.io/mochizuki875/hello-app:jdk11
+      # - image: ghcr.io/mochizuki875/hello-app:jdk11
+      - image: ghcr.io/mochizuki875/hello-app:jdk11.0.16
         name: hello-app
         imagePullPolicy: Always
         resources:
