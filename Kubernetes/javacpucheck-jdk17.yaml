@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: javacpucheck-jdk17
+  name: javacpucheck-jdk17
+spec:
+  containers:
+  - image: ghcr.io/mochizuki875/checkcpucore:jdk17
+    name: javacpucheck
+    env:
+    - name: JAVA_TOOL_OPTIONS
+      value: "-verbose:gc -XX:+PrintCommandLineFlags"
+    resources:
+      limits:
+        memory: "1Gi"
+        cpu: "1"

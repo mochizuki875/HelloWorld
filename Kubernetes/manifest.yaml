@@ -2,87 +2,114 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: hello-app
-  name: hello-app
+    app: test-app
+  name: test-app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hello-app
+      app: test-app
   template:
     metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "true"
       labels:
-        app: hello-app
+        app: test-app
     spec:
       containers:
-      - image: ghcr.io/mochizuki875/hello-app:v1.0
+      # - image: ghcr.io/mochizuki875/hello-app:v1.0
+      - image: ghcr.io/mochizuki875/hello-app:jdk11
         name: hello-app
         imagePullPolicy: Always
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "0.25"
+            # memory: "512Mi"
+            # memory: "1Gi"
+            # cpu: "0.5"
+            # cpu: "1"
           limits:
-            memory: "512Mi"
+            # memory: "512Mi"
+            memory: "1Gi"
+            # cpu: "0.5"
             cpu: "1"
+        # lifecycle:
+        #   postStart:
+        #     exec:
+        #       command:
+        #       - sh 
+        #       - -c
+        #       - |-
+        #         sleep 30
+        #         for i in $(seq 10); do
+        #           curl -s http://127.0.0.1:8080/ > /dev/null
+        #         done
         env:
         - name: SERVER_PORT
           value: "8080"
         - name: JAVA_TOOL_OPTIONS
-          value: "-javaagent:otel.jar"
+          value: "-verbose:gc -XX:+PrintCommandLineFlags"
+        # - name: JAVA_TOOL_OPTIONS
+          # value: "-verbose:gc -Xms200m -Xmx200m -XX:NewRatio=1 -XX:SurvivorRatio=8"
+        # - name: JAVA_LOG_LEVEL
+        #   value: DEBUG
         - name: OTEL_SERVICE_NAME
           value: HelloApp
         - name: OTEL_TRACES_EXPORTER
           value: otlp
+        - name: OTEL_METRICS_EXPORTER
+          value: none
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: http://grafana-agent-traces.monitoring.svc:4317
-        - name: OTEL_RESOURCE_ATTRIBUTES_NAMESPACE
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.namespace
-        - name: OTEL_RESOURCE_ATTRIBUTES_POD_NAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.name
-        - name: OTEL_RESOURCE_ATTRIBUTES_POD_UID
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.uid
-        - name: OTEL_RESOURCE_ATTRIBUTES_POD_IP
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: status.podIP
-        - name: OTEL_RESOURCE_ATTRIBUTES_NODE_NAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: spec.nodeName
-        - name: OTEL_RESOURCE_ATTRIBUTES
-          value: "k8s.namespace.name=$(OTEL_RESOURCE_ATTRIBUTES_NAMESPACE), k8s.pod.name=$(OTEL_RESOURCE_ATTRIBUTES_POD_NAME), k8s.pod.uid=$(OTEL_RESOURCE_ATTRIBUTES_POD_UID), k8s.pod.ip=$(OTEL_RESOURCE_ATTRIBUTES_POD_IP), k8s.node.name=$(OTEL_RESOURCE_ATTRIBUTES_NODE_NAME)"
+          value: http://opentelemetry-collector.monitoring.svc:4317
+        # - name: OTEL_RESOURCE_ATTRIBUTES_NAMESPACE
+        #   valueFrom:
+        #     fieldRef:
+        #       apiVersion: v1
+        #       fieldPath: metadata.namespace
+        # - name: OTEL_RESOURCE_ATTRIBUTES_POD_NAME
+        #   valueFrom:
+        #     fieldRef:
+        #       apiVersion: v1
+        #       fieldPath: metadata.name
+        # - name: OTEL_RESOURCE_ATTRIBUTES_POD_UID
+        #   valueFrom:
+        #     fieldRef:
+        #       apiVersion: v1
+        #       fieldPath: metadata.uid
+        # - name: OTEL_RESOURCE_ATTRIBUTES_POD_IP
+        #   valueFrom:
+        #     fieldRef:
+        #       apiVersion: v1
+        #       fieldPath: status.podIP
+        # - name: OTEL_RESOURCE_ATTRIBUTES_NODE_NAME
+        #   valueFrom:
+        #     fieldRef:
+        #       apiVersion: v1
+        #       fieldPath: spec.nodeName
+        # - name: OTEL_RESOURCE_ATTRIBUTES
+        #   value: "k8s.namespace.name=$(OTEL_RESOURCE_ATTRIBUTES_NAMESPACE), k8s.pod.name=$(OTEL_RESOURCE_ATTRIBUTES_POD_NAME), k8s.pod.uid=$(OTEL_RESOURCE_ATTRIBUTES_POD_UID), k8s.pod.ip=$(OTEL_RESOURCE_ATTRIBUTES_POD_IP), k8s.node.name=$(OTEL_RESOURCE_ATTRIBUTES_NODE_NAME)"
+      nodeSelector: 
+        kubernetes.io/hostname: k8s-cluster1-worker01
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: hello-app
-  name: hello-app
+    app: test-app
+  name: test-app
 spec:
   selector:
-    app: hello-app
+    app: test-app
   type: LoadBalancer
   ports:
   - protocol: TCP
     port: 8080
     targetPort: 8080
+    nodePort: 30481
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: hello-app-ingress
+  name: test-app-ingress
 spec:
   ingressClassName: nginx
   rules:
@@ -93,6 +120,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: hello-app
+            name: test-app
             port:
               number: 8080
